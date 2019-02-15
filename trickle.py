@@ -105,7 +105,7 @@ if __name__ == '__main__':
     d.walk_dependencies()
     
     # print output
-    print 'The output is \n{}'format(d.output)
+    print 'The output is \n{}'.format(d.output)
     
     print 'Running example scenario 2:'
     
