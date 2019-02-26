@@ -26,10 +26,11 @@ class Node(object):
             
 class DepGraph(object):
     
-    def __init__(self, nodes, params):
+    def __init__(self, nodes, params, verbose):
         self.params = params
         self.nodes = nodes
         self.output = None
+        self.verbose = verbose
     
     def walk_dependencies(self, nodelist=None):
         if not nodelist:
@@ -38,15 +39,19 @@ class DepGraph(object):
         while nodelist:
             n = nodelist.pop()
             if n.is_done:
-                print "we ran {} already".format(n.name)
+                if self.verbose:
+                    print "we ran {} already".format(n.name)
                 return self.walk_dependencies([nodelist])
             
             elif n.can_run():
-                print "we're ready to do {}".format(n.name)
+                if self.verbose:
+                    print "we're ready to do {}".format(n.name)
                 self.output = n.run(self.params)
+                self.params = self.output
                 
             elif not n.can_run():
-                print "{} has unmet dependencies".format(n.name)
+                if self.verbose:
+                    print "{} has unmet dependencies".format(n.name)
                 return self.walk_dependencies([n.depends])
                 
             else:
