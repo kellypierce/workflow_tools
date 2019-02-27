@@ -53,7 +53,7 @@ class DepGraph(object):
                 self.params = self.output
             elif n.can_run() == 1:
             	print("Error attempting to satisfy dependency {}:".format(n.name))
-            	print n.error
+            	print(n.error)
             	return
             elif n.can_run() == 2:
                 if self.verbose:
@@ -98,7 +98,7 @@ class AdditionTask(Node):
         
 if __name__ == '__main__':
     
-    print 'Running example scenario 1:'
+    print('Running example scenario 1:')
     new_params = {
         'b': 4.7,
         'm': 2.1,
