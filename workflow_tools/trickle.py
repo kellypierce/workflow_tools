@@ -4,6 +4,7 @@ class Node(object):
         self.name = name # e.g., 'addition1'
         self.depends = depends
         self.is_done = False
+        self.error = None
         
     def update_state(self):
         self.is_done = True
@@ -19,10 +20,12 @@ class Node(object):
             
     def can_run(self):
         depends_met = self.check_dependencies()
-        if all(depends_met):
-            return True
+        if all(depends_met) and self.error is None:
+            return 0
+        elif self.error is not None:
+            return 1
         else:
-            return False
+        	return 2
             
 class DepGraph(object):
     
@@ -43,13 +46,16 @@ class DepGraph(object):
                     print "we ran {} already".format(n.name)
                 return self.walk_dependencies([nodelist])
             
-            elif n.can_run():
+            elif n.can_run() == 0:
                 if self.verbose:
                     print "we're ready to do {}".format(n.name)
                 self.output = n.run(self.params)
                 self.params = self.output
-                
-            elif not n.can_run():
+            elif n.can_run() == 1:
+            	print 'Error attempting to satisfy dependency {}:'.format(n.name)
+            	print n.error
+            	return
+            elif n.can_run() == 2:
                 if self.verbose:
                     print "{} has unmet dependencies".format(n.name)
                 return self.walk_dependencies([n.depends])
