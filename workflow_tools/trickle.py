@@ -43,25 +43,25 @@ class DepGraph(object):
             n = nodelist.pop()
             if n.is_done:
                 if self.verbose:
-                    print "we ran {} already".format(n.name)
+                    print("we ran {} already".format(n.name))
                 return self.walk_dependencies([nodelist])
             
             elif n.can_run() == 0:
                 if self.verbose:
-                    print "we're ready to do {}".format(n.name)
+                    print("we're ready to do {}".format(n.name))
                 self.output = n.run(self.params)
                 self.params = self.output
             elif n.can_run() == 1:
-            	print 'Error attempting to satisfy dependency {}:'.format(n.name)
+            	print("Error attempting to satisfy dependency {}:".format(n.name))
             	print n.error
             	return
             elif n.can_run() == 2:
                 if self.verbose:
-                    print "{} has unmet dependencies".format(n.name)
+                    print("{} has unmet dependencies".format(n.name))
                 return self.walk_dependencies([n.depends])
                 
             else:
-                print 'what the fuck is happening??'
+                print("Unable to walk dependencies.")
         
                 
 class MultiplicationTask(Node):
@@ -111,22 +111,22 @@ if __name__ == '__main__':
 
     # resolve dependencies and execute tasks
     node_list = [m1, a1]
-    print 'The node list is {}'.format(node_list)
+    print('The node list is {}'.format(node_list))
     d = DepGraph(node_list, new_params)
     d.walk_dependencies()
     
     # print output
-    print 'The output is \n{}'.format(d.output)
+    print('The output is \n{}'.format(d.output))
     
-    print 'Running example scenario 2:'
+    print('Running example scenario 2:')
     
     m2 = MultiplicationTask('m1', None)
     a2 = AdditionTask('a1', m1)
     node_list_rev = [a2, m2]
     
-    print 'The node list is {}'.format(node_list_rev)
+    print('The node list is {}'.format(node_list_rev))
     
     d_rev = DepGraph(node_list_rev, new_params)
     d_rev.walk_dependencies()
-    print 'The output is \n{}'.format(d_rev.output)
+    print('The output is \n{}'.format(d_rev.output))
     
