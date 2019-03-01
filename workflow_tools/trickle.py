@@ -1,14 +1,14 @@
 class Node(object):
-    
+
     def __init__(self, name, depends):
         self.name = name # e.g., 'addition1'
         self.depends = depends
         self.is_done = False
         self.error = None
-        
+
     def update_state(self):
         self.is_done = True
-        
+
     def check_dependencies(self):
         if not self.depends:
             depends_met = [True]
@@ -17,7 +17,7 @@ class Node(object):
         else:
             depends_met = [self.depends.is_done]
         return depends_met
-            
+
     def can_run(self):
         depends_met = self.check_dependencies()
         if all(depends_met) and self.error is None:
@@ -25,51 +25,94 @@ class Node(object):
         elif self.error is not None:
             return 1
         else:
-        	return 2
-            
+            return 2
+
 class DepGraph(object):
-    
+
     def __init__(self, nodes, params, verbose):
         self.params = params
         self.nodes = nodes
+        self.completed = []
+        self.next_task = None
         self.output = None
         self.verbose = verbose
-    
-    def walk_dependencies(self, nodelist=None):
-        if not nodelist:
-            nodelist = self.nodes
-        next_task = None
-        while nodelist:
-            n = nodelist.pop()
-            if n.is_done:
+
+    def run_task(self):
+        '''execute the run() method for a node and update progress variables'''
+        self.output = self.next_task.run(self.params)
+        self.params = self.output
+        self.completed.append(self.next_task)
+        self.next_task = None
+        return
+
+    def walk_dependencies(self):
+        '''walk list of nodes tasks and run them when their dependencies are met'''
+
+        print('Processing file "{}".'.format(self.params['file']))
+
+        while self.nodes:
+
+            # previous runs that produced outputs should stop execution of the workflow
+            # even if nodes remain in the nodelist
+            if self.params['workflow_done']:
                 if self.verbose:
-                    print("we ran {} already".format(n.name))
-                return self.walk_dependencies([nodelist])
-            
-            elif n.can_run() == 0:
+                    print('Workflow completed')
+                return
+
+            # identify a focal task to evaluate
+            if not self.next_task:
+                self.next_task = self.nodes.pop()
+
+            # optional updates to std out
+            if self.verbose:
+                print(
+                    'Working on task "{}". Workflow completed status is {}.'.format(
+                        self.next_task.name, self.params['workflow_done']
+                    )
+                )
+
+            # if the task has been done, add it to the completed list and reset next task
+            if self.next_task.is_done:
                 if self.verbose:
-                    print("we're ready to do {}".format(n.name))
-                self.output = n.run(self.params)
-                self.params = self.output
-            elif n.can_run() == 1:
-            	print("Error attempting to satisfy dependency {}:".format(n.name))
-            	print(n.error)
-            	return
-            elif n.can_run() == 2:
+                    print('...We already completed task "{}"'.format(self.next_task.name))
+                self.completed.append(self.next_task)
+                self.next_task = None
+
+            # if the task is ready to run then do so
+            elif self.next_task.can_run() == 0:
                 if self.verbose:
-                    print("{} has unmet dependencies".format(n.name))
-                return self.walk_dependencies([n.depends])
-                
+                    print('...We are ready to run task "{}"'.format(self.next_task.name))
+                self.run_task()
+
+            # if the last completed task returned an error, return this function
+            elif self.next_task.can_run() == 1:
+                print('...Error running task "{}"'.format(self.completed.pop().name))
+                print(self.next_task.error)
+                return
+
+            # if there are dependencies, add the focal task back to the queue and
+            # set self.next_task to the dependency
+            elif self.next_task.can_run() == 2:
+                if self.verbose:
+                    print(
+                        '...Task "{}" has unmet dependency "{}"'.format(
+                            self.next_task.name, self.next_task.depends
+                        )
+                    )
+                tmp_depends = self.next_task.depends
+                self.nodes.append(self.next_task)
+                self.next_task = tmp_depends 
+
             else:
-                print("Unable to walk dependencies.")
-        
-                
+                print('...Something went wrong... unable to walk dependencies.')
+
+
 class MultiplicationTask(Node):
-    
+
     def __init__(self, name, depends):
         Node.__init__(self, name, depends)
         self.outputs = None
-    
+
     # do work
     def run(self, params):
         x = params['x']
@@ -79,13 +122,14 @@ class MultiplicationTask(Node):
         self.outputs = params
         self.update_state()
         return params
-            
+
+
 class AdditionTask(Node):
-    
+
     def __init__(self, name, depends):
         Node.__init__(self, name, depends)
         self.output = None
-        
+
     # do work
     def run(self, params):
         mx = params['mx']
@@ -95,9 +139,10 @@ class AdditionTask(Node):
         self.output = params
         self.update_state()
         return params
-        
+
+
 if __name__ == '__main__':
-    
+
     print('Running example scenario 1:')
     new_params = {
         'b': 4.7,
@@ -114,19 +159,18 @@ if __name__ == '__main__':
     print('The node list is {}'.format(node_list))
     d = DepGraph(node_list, new_params)
     d.walk_dependencies()
-    
+
     # print output
     print('The output is \n{}'.format(d.output))
-    
+
     print('Running example scenario 2:')
-    
+
     m2 = MultiplicationTask('m1', None)
     a2 = AdditionTask('a1', m1)
     node_list_rev = [a2, m2]
-    
+
     print('The node list is {}'.format(node_list_rev))
-    
+
     d_rev = DepGraph(node_list_rev, new_params)
     d_rev.walk_dependencies()
     print('The output is \n{}'.format(d_rev.output))
-    
