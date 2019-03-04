@@ -1,3 +1,5 @@
+import logging
+
 class Node(object):
 
     def __init__(self, name, depends):
@@ -48,63 +50,50 @@ class DepGraph(object):
     def walk_dependencies(self):
         '''walk list of nodes tasks and run them when their dependencies are met'''
 
-        print('Processing file "{}".'.format(self.params['file']))
-
+        logging.info('Processing file "{}".'.format(self.params['file']))
         while self.nodes:
 
             # previous runs that produced outputs should stop execution of the workflow
             # even if nodes remain in the nodelist
             if self.params['workflow_done']:
-                if self.verbose:
-                    print('Workflow completed')
+                logging.info('Workflow completed')
                 return
 
             # identify a focal task to evaluate
             if not self.next_task:
                 self.next_task = self.nodes.pop()
 
-            # optional updates to std out
-            if self.verbose:
-                print(
-                    'Working on task "{}". Workflow completed status is {}.'.format(
-                        self.next_task.name, self.params['workflow_done']
-                    )
-                )
-
             # if the task has been done, add it to the completed list and reset next task
             if self.next_task.is_done:
-                if self.verbose:
-                    print('...We already completed task "{}"'.format(self.next_task.name))
+                logging.info('...We already completed task "{}"'.format(self.next_task.name))
                 self.completed.append(self.next_task)
                 self.next_task = None
 
             # if the task is ready to run then do so
             elif self.next_task.can_run() == 0:
-                if self.verbose:
-                    print('...We are ready to run task "{}"'.format(self.next_task.name))
+                logging.info('...We are ready to run task "{}"'.format(self.next_task.name))
                 self.run_task()
 
             # if the last completed task returned an error, return this function
             elif self.next_task.can_run() == 1:
-                print('...Error running task "{}"'.format(self.completed.pop().name))
-                print(self.next_task.error)
+                logging.error('...Error running task "{}"'.format(self.completed.pop().name))
+                logging.error(self.next_task.error)
                 return
 
             # if there are dependencies, add the focal task back to the queue and
             # set self.next_task to the dependency
             elif self.next_task.can_run() == 2:
-                if self.verbose:
-                    print(
-                        '...Task "{}" has unmet dependency "{}"'.format(
-                            self.next_task.name, self.next_task.depends
-                        )
+                logging.info(
+                    '...Task "{}" has unmet dependency "{}"'.format(
+                        self.next_task.name, self.next_task.depends
                     )
+                )
                 tmp_depends = self.next_task.depends
                 self.nodes.append(self.next_task)
                 self.next_task = tmp_depends 
 
             else:
-                print('...Something went wrong... unable to walk dependencies.')
+                logging.critical('...Something went wrong... unable to walk dependencies.')
 
 
 class MultiplicationTask(Node):
