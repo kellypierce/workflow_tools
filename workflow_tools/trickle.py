@@ -6,7 +6,7 @@ class Node(object):
         self.name = name # e.g., 'addition1'
         self.depends = depends
         self.is_done = False
-        self.error = None
+        self.error = False
 
     def update_state(self):
         self.is_done = True
@@ -22,9 +22,9 @@ class Node(object):
 
     def can_run(self):
         depends_met = self.check_dependencies()
-        if all(depends_met) and self.error is None:
+        if all(depends_met) and not self.error:
             return 0
-        elif self.error is not None:
+        elif self.error:
             return 1
         else:
             return 2
@@ -77,7 +77,6 @@ class DepGraph(object):
             # if the last completed task returned an error, return this function
             elif self.next_task.can_run() == 1:
                 logging.error('...Error running task "{}"'.format(self.completed.pop().name))
-                logging.error(self.next_task.error)
                 return
 
             # if there are dependencies, add the focal task back to the queue and
