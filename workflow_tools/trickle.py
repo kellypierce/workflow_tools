@@ -22,12 +22,10 @@ class Node(object):
 
     def can_run(self):
         depends_met = self.check_dependencies()
-        if all(depends_met) and not self.error:
-            return 0
-        elif self.error:
-            return 1
+        if all(depends_met):
+            return True
         else:
-            return 2
+            return False
 
 class DepGraph(object):
 
@@ -69,19 +67,17 @@ class DepGraph(object):
                 self.completed.append(self.next_task)
                 self.next_task = None
 
-            # if the task is ready to run then do so
-            elif self.next_task.can_run() == 0:
+            # if the task is ready to run then do so and check for errors in output
+            elif self.next_task.can_run():
                 logging.info('...We are ready to run task "{}"'.format(self.next_task.name))
                 self.run_task()
-
-            # if the last completed task returned an error, return this function
-            elif self.next_task.can_run() == 1:
-                logging.error('...Error running task "{}"'.format(self.completed.pop().name))
-                return
+                # if the next task returns an error, return the function for clean exit
+                if self.next_task.error:
+                    return
 
             # if there are dependencies, add the focal task back to the queue and
             # set self.next_task to the dependency
-            elif self.next_task.can_run() == 2:
+            elif not self.next_task.can_run():
                 logging.info(
                     '...Task "{}" has unmet dependency "{}"'.format(
                         self.next_task.name, self.next_task.depends
