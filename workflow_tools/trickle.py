@@ -40,10 +40,13 @@ class DepGraph(object):
     def run_task(self):
         '''execute the run() method for a node and update progress variables'''
         self.output = self.next_task.run(self.params)
-        self.params = self.output
-        self.completed.append(self.next_task)
-        self.next_task = None
-        return
+        if self.next_task.error:
+            return False
+        else:
+            self.params = self.output
+            self.completed.append(self.next_task)
+            self.next_task = None
+            return True
 
     def walk_dependencies(self):
         '''walk list of nodes tasks and run them when their dependencies are met'''
@@ -70,9 +73,9 @@ class DepGraph(object):
             # if the task is ready to run then do so and check for errors in output
             elif self.next_task.can_run():
                 logging.info('...We are ready to run task "{}"'.format(self.next_task.name))
-                self.run_task()
+                runner = self.run_task()
                 # if the next task returns an error, return the function for clean exit
-                if self.next_task.error:
+                if not runner:
                     return
 
             # if there are dependencies, add the focal task back to the queue and
